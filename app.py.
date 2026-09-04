@@ -1,79 +1,106 @@
-import telebot
-import requests
-import time
-import threading
-from flask import Flask
+text += f"🔍 Отслеживание: {'ВКЛ' if settings.get('track_enabled', True) else 'ВЫКЛ'}\n\n"
+    text += "📌 Команды:\n"
+    text += "/stats - статистика\n"
+    text += "/users - список пользователей\n"
+    text += "/bot_on / bot_off - вкл/выкл бота\n"
+    text += "/shop_on / shop_off - вкл/выкл магазин\n"
+    text += "/track_on / track_off - вкл/выкл отслеживание\n"
+    text += "/broadcast <текст> - рассылка\n"
+    text += "/say <текст> - отправить сообщение от бота"
+    bot.reply_to(m, text, parse_mode="Markdown")
+TOKEN = "8621405739:AAGq040-5rKvTEqvAv2Ykw6w0L7"
+ADMIN_ID = 5631896858
 
-TOKEN "8621405739:AAGqO4O-5rKVtEqVav2Ykw6wOL70iaSPi5Y"
-bot = telebot.TeleBot(TOKEN)
-users = {}
-
-@bot.message_handler(commands=['start'])
-def start(m):
-    bot.reply_to(m, "Бот работает! Команды: /shop, /track, /mylist")
-
-@bot.message_handler(commands=['shop'])
-def shop(m):
-    try:
-        r = requests.get("https://fnbr.co/api/shop")
-        data = r.json()
-        text = "Магазин:\n"
-        for item in data.get("data", {}).get("featured", [])[:3]:
-            text += f"{item.get('name')}\n"
-        bot.reply_to(m, text)
-    except:
-        bot.reply_to(m, "Ошибка")
-
-@bot.message_handler(commands=['track'])
-def track(m):
-    skin = m.text.replace("/track", "").strip()
-    if not skin:
-        bot.reply_to(m, "Пример: /track Black Knight")
+@bot.message_handler(commands=['stats'])
+def stats(m):
+    if m.from_user.id != ADMIN_ID:
         return
-    uid = m.from_user.id
-    if uid not in users:
-        users[uid] = []
-    users[uid].append(skin)
-    bot.reply_to(m, f"Добавлен: {skin}")
+    total_skins = sum(len(u["skins"]) for u in users.values())
+    bot.reply_to(m, f"📊 Статистика:\n👥 Пользователей: {len(users)}\n🎯 Скинов в отслеживании: {total_skins}")
 
-@bot.message_handler(commands=['mylist'])
-def mylist(m):
-    uid = m.from_user.id
-    s = users.get(uid, [])
-    bot.reply_to(m, f"Список: {', '.join(s) if s else 'пуст'}")
+@bot.message_handler(commands=['users'])
+def list_users(m):
+    if m.from_user.id != ADMIN_ID:
+        return
+    if not users:
+        bot.reply_to(m, "📭 Пользователей нет")
+        return
+    text = "👥 Список пользователей:\n"
+    for uid, data in users.items():
+        text += f"• {data.get('name', 'Без имени')} (ID: {uid}) — {len(data['skins'])} скинов\n"
+    bot.reply_to(m, text[:4000])  # Telegram лимит 4096 символов
 
-def check():
+@bot.message_handler(commands=['bot_on', 'bot_off', 'shop_on', 'shop_off', 'track_on', 'track_off'])
+def toggle(m):
+    if m.from_user.id != ADMIN_ID:
+        return
+    cmd = m.text.replace("/", "")
+    key_map = {
+        "bot_on": "bot_enabled", "bot_off": "bot_enabled",
+        "shop_on": "shop_enabled", "shop_off": "shop_enabled",
+        "track_on": "track_enabled", "track_off": "track_enabled"
+    }
+    value = not cmd.endswith("_off")
+    settings[key_map[cmd]] = value
+    save_settings()
+    status = "включён ✅" if value else "отключён ⛔"
+    bot.reply_to(m, f"Команда {cmd.replace('_', ' ')}: {status}")
+
+@bot.message_handler(commands=['broadcast'])
+def broadcast(m):
+    if m.from_user.id != ADMIN_ID:
+        return
+    text = m.text.replace("/broadcast", "").strip()
+    if not text:
+        bot.reply_to(m, "❌ Напишите текст для рассылки")
+        return
+    sent = 0
+    for uid in users:
+        try:
+            bot.send_message(int(uid), f"📢 {text}")
+            sent += 1
+        except:
+            pass
+    bot.reply_to(m, f"✅ Рассылка отправлена {sent} пользователям")
+
+@bot.message_handler(commands=['say'])
+def say(m):
+    if m.from_user.id != ADMIN_ID:
+        return
+    text = m.text.replace("/say", "").strip()
+    if not text:
+        bot.reply_to(m, "❌ Напишите текст")
+        return
+    bot.reply_to(m, text)
+
+# ---------- ФОНОВАЯ ПРОВЕРКА ----------
+def check_shop():
     while True:
-        time.sleep(60)
+        time.sleep(3600)
+        if not settings.get("track_enabled", True):
+            continue
         try:
             r = requests.get("https://fnbr.co/api/shop")
             data = r.json()
             shop = [i.get("name", "").lower() for i in data.get("data", {}).get("featured", [])]
-            for uid, skins in list(users.items()):
-                for s in skins:
+            for uid, data in list(users.items()):
+                for s in data["skins"][:]:
                     if s.lower() in shop:
-                        bot.send_message(uid, f"Скин {s} в магазине!")
-                        users[uid].remove(s)
+                        bot.send_message(int(uid), f"🎉 {s} появился в магазине!")
+                        users[uid]["skins"].remove(s)
+                        save_users()
         except:
             pass
 
-# --- Запуск бота и веб-сервера для Render ---
-# Запускаем фоновую проверку в отдельном потоке
-threading.Thread(target=check, daemon=True).start()
+threading.Thread(target=check_shop, daemon=True).start()
 
-# Создаём минимальный веб-сервер для Render
+# ---------- Flask для Render ----------
 app = Flask(name)
 
 @app.route('/')
 def index():
     return "Bot is running"
 
-@app.route('/health')
-def health():
-    return "OK"
-
 if name == "main":
-    # Запускаем бота в отдельном потоке, чтобы он не блокировал веб-сервер
     threading.Thread(target=bot.infinity_polling, daemon=True).start()
-    # Запускаем веб-сервер, который будет слушать порт, назначенный Render
     app.run(host='0.0.0.0', port=8080)
