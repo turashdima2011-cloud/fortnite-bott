@@ -1,4 +1,4 @@
-text += f"🔍 Отслеживание: {'ВКЛ' if settings.get('track_enabled', True) else 'ВЫКЛ'}\n\n"
+    text += f"🔍 Отслеживание: {'ВКЛ' if settings.get('track_enabled', True) else 'ВЫКЛ'}\n\n"
     text += "📌 Команды:\n"
     text += "/stats - статистика\n"
     text += "/users - список пользователей\n"
