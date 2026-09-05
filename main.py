@@ -33,7 +33,7 @@ def start(m):
     text += "/track_on / track_off - вкл/выкл отслеживание\n"
     text += "/broadcast <текст> - рассылка\n"
     text += "/say <текст> - отправить сообщение от бота"
-    bot.reply_to(m, text, parse_mode="Markdown" 
+    bot.reply_to(m, text, parse_mode="Markdown")
 
 @bot.message_handler(commands=['stats'])
 def stats(m):
