@@ -1,3 +1,19 @@
+import telebot
+
+BOT_TOKEN = "8621405739:AAEY7sSZduBmnG6j-FC5xXYKPebpSyyOYRM"
+ADMIN_ID = 5631896858
+
+bot = telebot.TeleBot(BOT_TOKEN)
+
+users = {}
+settings = {
+    "track_enabled": True
+}
+
+
+@bot.message_handler(commands=['start'])
+def start(m):
+    text = "👋 Добро пожаловать!\n\n"
     text += f"🔍 Отслеживание: {'ВКЛ' if settings.get('track_enabled', True) else 'ВЫКЛ'}\n\n"
     text += "📌 Команды:\n"
     text += "/stats - статистика\n"
@@ -8,8 +24,16 @@
     text += "/broadcast <текст> - рассылка\n"
     text += "/say <текст> - отправить сообщение от бота"
     bot.reply_to(m, text, parse_mode="Markdown")
-TOKEN = "8621405739:AAEY7sSZduBmnG6j-FC5xXYKPebpSyyOYRM"
-ADMIN_ID = 5631896858
+    text += f"🔍 Отслеживание: {'ВКЛ' if settings.get('track_enabled', True) else 'ВЫКЛ'}\n\n"
+    text += "📌 Команды:\n"
+    text += "/stats - статистика\n"
+    text += "/users - список пользователей\n"
+    text += "/bot_on / bot_off - вкл/выкл бота\n"
+    text += "/shop_on / shop_off - вкл/выкл магазин\n"
+    text += "/track_on / track_off - вкл/выкл отслеживание\n"
+    text += "/broadcast <текст> - рассылка\n"
+    text += "/say <текст> - отправить сообщение от бота"
+    bot.reply_to(m, text, parse_mode="Markdown" 
 
 @bot.message_handler(commands=['stats'])
 def stats(m):
