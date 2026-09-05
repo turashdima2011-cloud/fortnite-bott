@@ -1,4 +1,4 @@
-pyTelegramBotAPI>=4.27,<5
+pyTelegramBotAPI
 Flask>=3,<4
-requests>=2.31,<3
-Pillow>=10,<13
+requests
+Pillow
