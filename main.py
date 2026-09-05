@@ -95,12 +95,12 @@ def check_shop():
 threading.Thread(target=check_shop, daemon=True).start()
 
 # ---------- Flask для Render ----------
-app = Flask(name)
+app = Flask(__name__)
 
 @app.route('/')
 def index():
     return "Bot is running"
 
-if name == "main":
+if __name__ == "__main__":
     threading.Thread(target=bot.infinity_polling, daemon=True).start()
     app.run(host='0.0.0.0', port=8080)
