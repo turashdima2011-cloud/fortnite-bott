@@ -8,7 +8,7 @@ text += f"🔍 Отслеживание: {'ВКЛ' if settings.get('track_enable
     text += "/broadcast <текст> - рассылка\n"
     text += "/say <текст> - отправить сообщение от бота"
     bot.reply_to(m, text, parse_mode="Markdown")
-TOKEN = "8621405739:AAGq040-5rKvTEqvAv2Ykw6w0L7"
+TOKEN = "8621405739:AAEY7sSZduBmnG6j-FC5xXYKPebpSyyOYRM"
 ADMIN_ID = 5631896858
 
 @bot.message_handler(commands=['stats'])
